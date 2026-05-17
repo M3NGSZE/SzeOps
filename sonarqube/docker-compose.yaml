@@ -1,0 +1,37 @@
+# username: admin , password: admin
+# you must change the password for the next login
+services:
+  sonarqube:
+    image: sonarqube:latest
+    ports:
+      - "3005:9000"
+    environment:
+      - SONARQUBE_JDBC_URL=jdbc:postgresql://sonar-postgresql:5432/sonar
+      - SONARQUBE_JDBC_USERNAME=
+      - SONARQUBE_JDBC_PASSWORD=
+    restart: always
+    depends_on:
+      - sonar-postgresql
+    volumes:
+      - sonarqube_conf:/opt/sonarqube/conf
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_bundled-plugins:/opt/sonarqube/lib/bundled-plugins
+  sonar-postgresql:
+    image: postgres:latest
+    pull_policy: if_not_present
+    environment:
+      # default database probably: postgres
+      - POSTGRES_USER=
+      - POSTGRES_PASSWORD=
+    restart: always
+    # ports:
+    #   - 5432
+    volumes:
+      - postgresql_data:/var/lib/postgresql
+volumes:
+  sonarqube_conf:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_bundled-plugins:
+  postgresql_data:
