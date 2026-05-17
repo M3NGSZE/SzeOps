@@ -88,14 +88,14 @@ pipeline {
                 }
             }
             
-                sh """
-                    docker stop reactjs-cont || true
+                // sh """
+                //     docker stop reactjs-cont || true
 
-                    docker rm reactjs-cont || true
+                //     docker rm reactjs-cont || true
 
-                    docker run -d -p 3000:80 --name reactjs-cont \
-                        mengsestark/${IMAGE_NAME}:v1.0.${TAG}
-                """
+                //     docker run -d -p 3000:80 --name reactjs-cont \
+                //         mengsestark/${IMAGE_NAME}:v1.0.${TAG}
+                // """
             }
         }
 
