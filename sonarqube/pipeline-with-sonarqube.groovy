@@ -12,15 +12,6 @@ pipeline {
                 git 'https://github.com/keoKAY/reactjs-devop11-template.git'
             }
         }
-//         stage('OWASP Dependency Check') {
-//             steps {
-//                 // Run the scan
-//                 dependencyCheck odcInstallation: 'dependencies-check', additionalArguments: '--scan "./"'
-                
-//                 // Publish the report to the Jenkins UI
-//                 dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
-//             }
-// }
 
         stage("Check Code Quality in Sonarqube "){
             
@@ -68,11 +59,6 @@ pipeline {
         }
 
         stage('Building Image') {
-            // when {
-            //     expression {
-            //         currentBuild.result=='SUCCESS'
-            //     }
-            // }
             steps {
                 sh """
                 docker build -t reactjs-demo-image  . 
@@ -82,11 +68,6 @@ pipeline {
 
         //  Push the docker image to the dockerhub 
         stage("Push Image to Dockerhub "){
-            //  when {
-            //     expression {
-            //         currentBuild.result=='SUCCESS'
-            //     }
-            // }
             steps{
                 withCredentials([usernamePassword(credentialsId: 'DOCKERHUB-CRED', passwordVariable: 'TOKEN', usernameVariable: 'USERNAME')]) {
 
@@ -98,10 +79,8 @@ pipeline {
                         echo "2. Push image to Dockerhub"
                         docker push ${USERNAME}/${IMAGE_NAME}:v1.0.${TAG}
                     """
-    
-}
+                }
             }
         }
-
     }
 }
