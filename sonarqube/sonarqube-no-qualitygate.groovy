@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Clone Code ') {
             steps {
-                git 'https://github.com/keoKAY/reactjs-devop11-template.git'
+                git 'https://github.com/M3NGSZE/reactjs-devop11-template.git'
             }
         }
 
@@ -31,6 +31,27 @@ pipeline {
                         -Dsonar.projectName="${projectName}" \
                         -Dsonar.projectVersion=${projectVersion} \
                     """   
+                    }
+                }
+            }
+        }
+
+        // Check the quality gate ( passed or failed )
+        stage("Wait for Quality Gate "){
+            steps{
+                script{
+                    // We must configure webhook to let jenkins know when the result is return 
+                    def qg = waitForQualityGate()
+                    if ( qg.status != 'OK'){
+                        sh """
+                            echo " No need to build since you QG is failed "
+                        """
+                        currentBuild.result='FAILURE'
+                        error("Quality Gate is Failed !! ")
+                        return 
+                    }else {
+                        echo "Quality of code is okay!! "
+                        currentBuild.result='SUCCESS'
                     }
                 }
             }
