@@ -137,8 +137,8 @@ pipeline {
             steps {
 
                 script{
-                    def token="8723150702:AAHwv5FHEwwqAuLGnLCtnXCdNPasoGYbK_w"
-                def chatId="934577494"
+                    def token="TELEGRAM_TOKEN"
+                    def chatId="CHAT_ID"
 
                 def message = """
                     ✅ SonarQube Quality Gate PASSED
