@@ -8,8 +8,14 @@ pipeline {
     }
 
     stages {
+
+        // master machine
         // clone code from github
         stage('Clone code') {
+            agent {
+                label "master"
+            }
+            
             steps {
                 git 'https://github.com/M3NGSZE/reactjs-devop11-template.git'
             }
@@ -17,6 +23,10 @@ pipeline {
 
         // scan code with sonarqube
         stage('Scan code') {
+            agent {
+                label "master"
+            }
+
             environment {
                 scannerHome= tool 'sonar-scanner' 
             }
@@ -38,55 +48,100 @@ pipeline {
                 }
             }
         }
-
-        // Check the quality gate ( passed or failed )
-        stage("SonarQube Full Report") {
+        
+        // Check code quality (fail or pass)
+        stage("Wait for Quality Gate") {
+            agent {
+                label "master"
+            }
             steps {
                 script {
 
-                    def response = sh(
-                        script: """
-                        curl -s -u ${SONARQUBE_TOKEN}: \
-                        "https://sonarqube-sc.sentry-void.uk/api/measures/component?component=my-project&metricKeys=bugs,vulnerabilities,code_smells,coverage"
-                        """,
-                        returnStdout: true
-                    ).trim()
+                    def qg = waitForQualityGate()
 
-                    def json = readJSON text: response
+                    if (qg.status != 'OK') {
 
-                    def measures = json.component.measures
+                        echo "❌ Quality Gate FAILED"
 
-                    def getValue = { key ->
-                        return measures.find { it.metric == key }?.value ?: "0"
+                        def token = "TELEGRAM_TOKEN"
+                        def chatId = "CHAT_ID"
+
+                        def message = """
+                            ❌ SonarQube Quality Gate FAILED
+                            Project: ${env.JOB_NAME}
+                            Build: #${env.BUILD_NUMBER}
+                            Status: ${qg.status}
+                        """
+
+                        sendTelegramMessage("${message}", "${token}", "${chatId}");
+
+                        // Mark pipeline as failed
+                        currentBuild.result = 'FAILURE'
+
+                        // STOP pipeline here
+                        error("Stopping pipeline due to Quality Gate failure")
+
+                    } else {
+                        // no need to send notificaiton to telegram here
+                        echo "✅ Quality Gate PASSED"
+
+                        currentBuild.result = 'SUCCESS'
                     }
+                }
+            }
+        }
 
-                    def bugs = getValue("bugs")
-                    def vulnerabilities = getValue("vulnerabilities")
-                    def codeSmells = getValue("code_smells")
-                    def coverage = getValue("coverage")
 
-                    def token=""
-                    def chatId=""
+        // Build image
+        stage('Build image') {
+            agent {
+                label "master"
+            }
+            steps {
+                sh """
+                    docker build -t jenkins-reactjs-img  .  
+                """
+            }
+        }
 
-                    def message = """
-                    📊 SonarQube Report
-                    ────────────────────
-                    Project: ${env.JOB_NAME}
-                    Build: #${env.BUILD_NUMBER}
+        //  Push the docker image to the dockerhub 
+        stage("Push Image to Dockerhub "){
+            agent {
+                label "master"
+            }
 
-                    🐞 Bugs: ${bugs}
-                    ⚠️ Vulnerabilities: ${vulnerabilities}
-                    💨 Code Smells: ${codeSmells}
-                    📈 Coverage: ${coverage}%
-                    """
+            steps{
+                withCredentials([usernamePassword(credentialsId: 'DOCKERHUB-CRED', passwordVariable: 'TOKEN', usernameVariable: 'USERNAME')]) {
 
                     sh """
-                        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-                        -d chat_id=${CHAT_ID} \
-                        --data-urlencode "text=${message}"
+                        echo "1. Login to Dockerhub account " 
+                        echo "$TOKEN" | docker login -u ${USERNAME} --password-stdin
+
+                        docker tag jenkins-reactjs-img ${USERNAME}/${IMAGE_NAME}:v1.0.${TAG}
+                        echo "2. Push image to Dockerhub"
+                        docker push ${USERNAME}/${IMAGE_NAME}:v1.0.${TAG}
                     """
                 }
             }
         }
+
+        // slave machine
+        stage('Pull image') {
+            agent {
+                label "slave-01"
+            }
+        }
     }
+}
+
+
+def sendTelegramMessage(String message, String token, String chatId) {
+    // upgrade to use Markdown versin instead
+    def encodedMessage = URLEncoder.encode(message, "UTF-8")
+    sh """ 
+        curl -X POST https://api.telegram.org/bot${token}/sendMessage \\
+        -d chat_id="${chatId}" \\
+        -d text="${encodedMessage}" > /dev/null
+    
+    """
 }
