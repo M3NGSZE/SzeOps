@@ -1,10 +1,10 @@
 pipeline {
-    
-    agent : any
+    agent any
     
     environment {
         IMAGE_NAME="Jenkins-Master-Slave"
         TAG="${env.BUILD_NUMBER}"
+        CONTAINER_NAME = "react-app"
     }
 
     stages {
@@ -15,7 +15,7 @@ pipeline {
             agent {
                 label "master"
             }
-            
+
             steps {
                 git 'https://github.com/M3NGSZE/reactjs-devop11-template.git'
             }
@@ -126,9 +126,41 @@ pipeline {
         }
 
         // slave machine
-        stage('Pull image') {
+        stage('Deploy container') {
             agent {
                 label "slave-01"
+            }
+
+            steps {
+                sh"""
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
+
+                    docker run -dp 3000:80 --name ${CONTAINER_NAME} \
+                    ${USERNAME}/${IMAGE_NAME}:v1.0${TAG}
+                """
+            }
+        }
+
+        stage('Success Alert') {
+            agent {
+                label "slave-01"
+            }
+
+            steps {
+                echo "✅ Quality Gate PASSED"
+
+                def token = "TELEGRAM_TOKEN"
+                def chatId = "CHAT_ID"
+
+                def message = """
+                    ✅ SonarQube Quality Gate PASSED
+                    Project: ${env.JOB_NAME}
+                    Build: #${env.BUILD_NUMBER}
+                    Status: ${qg.status}
+                """
+
+                sendTelegramMessage("${message}", "${token}", "${chatId}");
             }
         }
     }

@@ -1,15 +1,18 @@
 pipeline {
-    
-    agent : any
+    agent any
     
     environment {
-        IMAGE_NAME="Jenkins-Master-Slave"
+        IMAGE_NAME="jenkins-master-slave"
         TAG="${env.BUILD_NUMBER}"
+        CONTAINER_NAME = "react-app"
     }
 
     stages {
         // clone code from github
         stage('Clone code') {
+            agent {
+                label "master"
+            }
             steps {
                 git 'https://github.com/M3NGSZE/reactjs-devop11-template.git'
             }
@@ -17,6 +20,9 @@ pipeline {
 
         // scan code with sonarqube
         stage('Scan code') {
+            agent {
+                label "master"
+            }
             environment {
                 scannerHome= tool 'sonar-scanner' 
             }
@@ -41,6 +47,9 @@ pipeline {
 
         // Check the quality gate ( passed or failed )
         stage("Wait for Quality Gate "){
+            agent {
+                label "master"
+            }
             steps{
                 script{
                     // We must configure webhook to let jenkins know when the result is return 
@@ -50,15 +59,18 @@ pipeline {
                             echo " No need to build since you QG is failed "
                         """
                         currentBuild.result='FAILURE'
-                        error("Quality Gate is Failed !! ")
-
-                        def token=""
-                        def chatId=""
-                        def message1="""
-                        hello world
-                        welcome to jenkins telelgram message 2
+                        
+                        def token="8723150702:AAHwv5FHEwwqAuLGnLCtnXCdNPasoGYbK_w"
+                        def chatId="934577494"
+                        def message="""
+                            ❌ SonarQube Quality Gate FAILED
+                            Project: ${env.JOB_NAME}
+                            Build: #${env.BUILD_NUMBER}
+                            Status: ${qg.status}
                         """
-                        sendTelegramMessage("${message2}", "${token}", "${chatId}")
+                        sendTelegramMessage("${message}", "${token}", "${chatId}")
+
+                        error("Quality Gate is Failed !! ")
 
                         return 
                     }else {
@@ -69,54 +81,74 @@ pipeline {
             }
         }
 
-        stage("SonarQube Full Report") {
+        stage('Build image') {
+            agent { label "master" }
             steps {
-                script {
+                sh "docker build -t jenkins-reactjs-img ."
+            }
+        }
 
-                    def response = sh(
-                        script: """
-                        curl -s -u ${SONARQUBE_TOKEN}: \
-                        "https://sonarqube-sc.sentry-void.uk/api/measures/component?component=my-project&metricKeys=bugs,vulnerabilities,code_smells,coverage"
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-                    def json = readJSON text: response
-
-                    def measures = json.component.measures
-
-                    def getValue = { key ->
-                        return measures.find { it.metric == key }?.value ?: "0"
-                    }
-
-                    def bugs = getValue("bugs")
-                    def vulnerabilities = getValue("vulnerabilities")
-                    def codeSmells = getValue("code_smells")
-                    def coverage = getValue("coverage")
-
-                    def token=""
-                    def chatId=""
-
-                    def message = """
-                    📊 SonarQube Report
-                    ────────────────────
-                    Project: ${env.JOB_NAME}
-                    Build: #${env.BUILD_NUMBER}
-
-                    🐞 Bugs: ${bugs}
-                    ⚠️ Vulnerabilities: ${vulnerabilities}
-                    💨 Code Smells: ${codeSmells}
-                    📈 Coverage: ${coverage}%
-                    """
+        //  Push the docker image to the dockerhub 
+        stage("Push Image to Dockerhub "){
+            agent { label "master" }
+            steps{
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'DOCKERHUB-CRED', 
+                        passwordVariable: 'TOKEN', 
+                        usernameVariable: 'USERNAME'
+                        )
+                    ]) {
 
                     sh """
-                        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-                        -d chat_id=${CHAT_ID} \
-                        --data-urlencode "text=${message}"
+                        echo "1. Login to Dockerhub account " 
+                        echo "$TOKEN" | docker login -u ${USERNAME} --password-stdin
+
+                        docker tag jenkins-reactjs-img ${USERNAME}/${IMAGE_NAME}:v1.0.${TAG}
+                        echo "2. Push image to Dockerhub"
+                        docker push ${USERNAME}/${IMAGE_NAME}:v1.0.${TAG}
                     """
                 }
             }
         }
+
+        // slave machine
+        stage('Deploy container') {
+            agent {
+                label "slave-01"
+            }
+
+            steps {
+                sh"""
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
+
+                    docker run -dp 3000:80 --name ${CONTAINER_NAME} \
+                    ${USERNAME}/${IMAGE_NAME}:v1.0${TAG}
+                """
+            }
+        }
+
+        stage('Success Alert') {
+            agent {
+                label "slave-01"
+            }
+
+            steps {
+
+                script{
+                    def token="8723150702:AAHwv5FHEwwqAuLGnLCtnXCdNPasoGYbK_w"
+                def chatId="934577494"
+
+                def message = """
+                    ✅ SonarQube Quality Gate PASSED
+                """
+
+                sendTelegramMessage("${message}", "${token}", "${chatId}");
+                }
+            }
+        }
+            
     }
 }
 
