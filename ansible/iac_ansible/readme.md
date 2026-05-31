@@ -13,4 +13,7 @@ sudo apt-get update && sudo apt-get install google-cloud-cli
 
 gcloud auth login 
 gcloud auth application-default login 
+
+
+adc_file=/home/mengse/.config/gcloud/application_default_credentials.json
 ```
