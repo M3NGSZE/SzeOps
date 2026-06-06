@@ -44,7 +44,7 @@
         #service_account_file: "{{ service_account_path }}"
         state: present
         metadata:
-          ssh-keys: "kk:{{ ssh_pub_key['content'] | b64decode }}"
+          ssh-keys: "mengse:{{ ssh_pub_key['content'] | b64decode }}"
           startup-script: |
             #!/bin/bash 
             sudo apt-get update && sudo apt-get upgrade -y 
