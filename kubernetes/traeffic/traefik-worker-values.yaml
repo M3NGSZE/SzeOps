@@ -1,0 +1,41 @@
+deployment:
+  replicas: 2
+  hostNetwork: true  # Forces Traefik to use the VM's native network interface
+
+# We change the service type to ClusterIP because external traffic 
+# will hit the host VMs directly, bypassing the NodePort routing layer.
+# service:
+#   type: ClusterIP
+service: 
+  spec: 
+    type: ClusterIP
+
+ports:
+  web:
+    port: 8000
+    hostPort: 80      # Binds port 8000 inside the container to port 80 on the host VM
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    port: 8443
+    hostPort: 443     # Binds port 8443 inside the container to port 443 on the host VM
+    # tls:
+    #   enabled: true
+
+providers:
+  kubernetesCRD:
+    enabled: true
+  kubernetesIngress:
+    enabled: true
+
+api:
+  dashboard: true
+# don't expose it 
+additionalArguments:
+  - "--api.insecure=true"
+  - "--api.dashboard=true"
