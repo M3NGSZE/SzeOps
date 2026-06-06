@@ -1,0 +1,8 @@
+#!/bin/bash
+create-vm:
+    ansible-playbook -i inventory.ini \
+        playbooks/create-vm.yaml
+
+destroy-vm:
+    ansible-playbook -i inventory.ini \
+    playbooks/destroy-vm.yaml
