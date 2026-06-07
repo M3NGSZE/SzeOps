@@ -1,4 +1,4 @@
-- name: Create masters instances 
+- name: Create workers instances 
   hosts: localhost 
   become: true 
   vars_files: 
@@ -50,6 +50,7 @@
         network_interfaces:
           - network:
               selfLink: "projects/{{google_project_id}}/global/networks/default"
+           # make sure that you already reserved the ip address inside the google console
             access_configs:
               - name: External NAT
                 type: ONE_TO_ONE_NAT
@@ -62,20 +63,23 @@
       environment: 
         GOOGLE_APPLICATION_CREDENTIALS: "{{ adc_file }}" 
       loop: "{{ machines_info }}" 
-
-      register: gcp_instances
-      # when: false 
-      when: item.name in ["master02","master03"] 
-        # - item.name == "master02"
-        # - item.name == "master03" 
+      register: gcp_workers_instances
+      # only run this for the workers machines 
+      when: item.name not in ["master02","master03"] 
     # Error in getting the first values  results 
     - name: Write gcp_instances into json file
       copy:
-        content: "{{ gcp_instances }}"
-        dest: "./gcp_more_instances.json"
+        content: "{{ gcp_workers_instances }}"
+        dest: "./gcp_workers_instances.json"
       when: true
-    - name: Create inventory from template 
+    #  store the existing inventory configuration to the variable
+    - name: Register the existing inventory file 
+      slurp:
+        src: "../inventory.ini"
+      register: existing_inventory 
+    - name: Update our inventory 
       template: 
-        src: ../templates/master-template.j2
-        dest: ../inventory.ini
-      when: true  
+        src: "../templates/worker-template.j2"
+        dest: "../inventory.ini"
+      vars:
+        existing_content: "{{ existing_inventory['content'] | b64decode }}"
