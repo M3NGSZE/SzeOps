@@ -26,11 +26,11 @@ ubuntu_specs:
 
 # Define machines that we will create
 
-reserved_ips: 
-  master02: 34.92.142.231 # master02
-  master03: 34.150.64.34 # master03
-  worker01: 35.240.173.121 # worker01
-  worker02: 34.21.137.122 # worker02
+# reserved_ips: 
+#   master02: 34.92.142.231 # master02
+#   master03: 34.150.64.34 # master03
+#   worker01: 35.240.173.121 # worker01
+#   worker02: 34.21.137.122 # worker02
   
 machines_info:
   # master requirement : RAM 8G, ....

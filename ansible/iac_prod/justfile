@@ -10,9 +10,11 @@ destroy-vm:
 create-masters: 
     ansible-playbook -i inventory.ini \
         playbooks/create-masters.yaml
+
 create-workers: 
     ansible-playbook -i inventory.ini \
         playbooks/create-workers.yaml
+        
 ping-all: 
     ansible -i inventory.ini \
         all -m ping 

@@ -53,8 +53,8 @@
             access_configs:
               - name: External NAT
                 type: ONE_TO_ONE_NAT
-                nat_ip: 
-                  address: "{{ reserved_ips[item.name] }}"
+                # nat_ip: 
+                #   address: "{{ reserved_ips[item.name] }}"
         tags:
           items:
             - http-server
