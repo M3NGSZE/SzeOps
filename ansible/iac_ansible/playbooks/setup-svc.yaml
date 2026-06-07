@@ -1,0 +1,16 @@
+# install common service on the server 
+- name: Setup service on server 
+  hosts: first-gcp-instance 
+  become: true 
+  tasks:
+    - name: Updates Caches 
+      apt: 
+        update_cache: true 
+    - name: Install some packages 
+      apt: 
+        name: 
+          - nginx 
+          - tree 
+          - gh 
+          - tdlr 
+      state: present 
