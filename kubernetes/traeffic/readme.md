@@ -21,4 +21,6 @@ kubectl get pod -n traefik -o wide
 
 kubectl port-forward \
     -n traefik deployment/traefik 8080:8080 
+
+# if config pod change to 8888, 8080 always used
 ```
