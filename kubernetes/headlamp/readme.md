@@ -33,3 +33,16 @@ kubectl create token headlamp --namespace headlamp
 # 2. publically exposed ( traefik )
 
 ```
+
+# Request Certificate and put dns
+```bash
+# go to directory first
+kubectl apply -f headlamp-ingress.yaml
+
+kubectl apply -f cluster-issuer-prod.yaml
+
+kubectl get ingress -n headlamp
+
+kubectl get ingress -n headlamp -w
+
+```
