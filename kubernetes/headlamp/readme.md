@@ -27,7 +27,7 @@ export CONTAINER_PORT=$(kubectl get pod --namespace headlamp $POD_NAME -o jsonpa
 
 echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl --namespace headlamp port-forward $POD_NAME 8080:$CONTAINER_PORT
-
+# if conflig port change to 8081 or any other that not conflig
 
 kubectl create token headlamp --namespace headlamp
 # 2. publically exposed ( traefik )
