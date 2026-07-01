@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: headlamp
+  namespace: headlamp
+  annotations:
+    # Connects this ingress directly to the ClusterIssuer we made in Phase 2
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik  # Tells Kubernetes that Traefik is the controller handling this rule
+  tls:
+    - hosts:
+        - headlamp.sentry-void.uk  # Change to your actual domain name
+      secretName: headlamp-tls-cert  # cert-manager will save the generated certificate data here
+  rules:
+    - host: headlamp.sentry-void.uk  # Change to your actual domain name
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: headlamp  # Routes traffic to the Headlamp service we deployed via Helm
+                port:
+                  number: 80
